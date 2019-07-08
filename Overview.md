@@ -37,6 +37,7 @@ A benchmark suite and the methodology used to evaluate it can be tricky to get r
 * **Not validating outputs.** Benchmarks should check the result of the computations they perform, both to serve as a useful check on correctness, but also to prevent optimizations from dead-code-eliminating parts of the workload.
 * **Non-fixed workloads.** Benchmark items that iterate for a number of seconds or rely on throughput measurements over time can perform a non-determinism amount of work, leading to paradoxical outcomes such as making a program faster means it executes more iterations, which means it allocates more memory. Instead, to deal with a wide range of performance, benchmarks should have a fixed set of different size workloads.
 * **Not understanding benchmark behavior.** Benchmarks that contain intricate algorithms and behavior not understood by anyone are difficult to gain insight into, and often can be misconfigured so that the core calculations are not measured properly. Benchmark items' computations should be understood and at least explained at a high level as part of integration into the suite.
+* **Not measuring startup performance.** For managed languages with JIT compilers, which is similar to WebAssembly engines in browsers, the performance characteristics of JIT compilation and warmup can contribute significantly to application performance. They should be characterized and measured properly.
 
 # Making use of Benchmarks Big and Small
 
