@@ -14,12 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//           V8 usage: d8 runner.js -- COMMAND ARG...
-// SpiderMonkey usage: js runner.js COMMAND ARG...
+// Usage: $JS runner.js -- COMMAND ARG...
 
 const computeEnv = () => {
     const env = {};
-    
+
     env.thisProgram = "runner.js";
     env.readFilePrefix = "";
 
@@ -43,7 +42,7 @@ const computeEnv = () => {
             throw 'no readBinaryFile() available';
         };
     }
-    
+
     if (typeof scriptArgs !== 'undefined') {
         env.args = scriptArgs;
     } else if (typeof arguments !== 'undefined') {
@@ -59,7 +58,7 @@ const computeEnv = () => {
     if (env.args[0] == '--') {
         env.args.shift();
     }
-    
+
     if (typeof drainJobQueue !== 'undefined') {
         env.waitFor = function waitFor(p) { drainJobQueue(); return p; };
     } else if (typeof testRunner !== 'undefined') {

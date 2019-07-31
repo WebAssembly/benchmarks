@@ -20,6 +20,5 @@
 # Example invocation with SpiderMonkey:
 # JS=~/src/mozilla-inbound/+js-release/js/src/js ./run-benchmarks.sh list small
 
-
 cd $(dirname $0)
 exec ${JS-js} runner.js -- "$@"
