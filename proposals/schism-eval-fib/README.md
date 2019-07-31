@@ -1,13 +1,14 @@
-# Schism eval('fib(25)') benchmark
+# Schism eval('fib(n)') benchmark
 
 ## Overview
 
 This benchmark runs a Scheme interpreter (`eval`), compiled by the
 [Schism](https://github.com/google/schism) self-hosted Scheme
-implementation.  The interpreter is used to compute and print the 25th
+implementation.  The interpreter is used to compute and print a
 fibonacci number.
 
-This branch of Schism represents Scheme values using `anyref` values
+This branch of Schism represents Scheme values using [`anyref`
+values](https://github.com/WebAssembly/reference-types/blob/master/proposals/reference-types/Overview.md)
 originating in the embedder.  The embedder has to supply allocator, type
 predicate, and field access instructions for the different Scheme value
 types supported by Schism: small integers, characters, strings, symbols,
@@ -16,32 +17,29 @@ which uses tagged JavaScript numbers for Scheme integers and characters,
 tagged JavaScript strings for Scheme strings and symbols, and JavaScript
 objects for pairs and closures.
 
+This branch of Schism also uses [tail
+calls](https://github.com/WebAssembly/tail-call/blob/master/proposals/tail-call/Overview.md)
+where appropriate.
+
 This benchmark largely tests the performance of `anyref`, host-side
-allocation and GC, and JavaScript strings.  It also stress-tests calls
-between WebAssembly and JS, as well as inter-WebAssembly calls.
+allocation and GC, (tail) calls between WebAssembly and JS, as well as
+inter-WebAssembly (tail) calls.
 
 ## Possible benchmark evolution
 
-The benchmark could be made more suitable in a few ways:
+As WebAssembly evolves, the benchmark could be made more suitable in a
+few ways:
 
  * Eq-able reference types would be useful.  It would be nice to be able
    to compare anyref values by identity, though what that means for host
    strings is a question.
 
- * We could use tail calls.
-
  * `i31ref` would be really useful.
-
- * The Schism compiler can improve in many ways.  Notably the current
-   version doesn't support static data, which means that it allocates
-   more than usual at run-time in order to create literals anew each
-   time they appear.  We could take a version of `eval` compiled from a
-   newer version of Schism that doesn't have this problem.
 
  * We could use GC types to avoid calling out so much to the host.
    Would need implementation of GC in an engine though.
 
-## Benchmark kind
+## Benchmark category
 
 I think we can consider this benchmark to be a "kernel".
 
@@ -71,134 +69,128 @@ Source: https://github.com/google/schism/blob/master/test/eval.ss
 mkdir /tmp/schism-eval-fib
 git clone https://github.com/google/schism
 cd schism
-# Anyref support pending merge: https://github.com/google/schism/pull/72
-git checkout 1b202ad59b7db45c95107f38ba5513cdaac421f7
+# Tail call support pending merge: https://github.com/google/schism/pull/80
+git checkout 7a0993568af3d73f26d190a41b554bf559148d9b
 # FIXME: Build from self-hosted wasm instead of Guile.
 bootstrap-from-guile.sh /tmp/schism-eval-fib/schism-eval.wasm test/eval.ss
-cp rt/rt.mjs /tmp/schism-eval-fib/
+cp rt/rt.mjs /tmp/schism-eval-fib/rt.js
 ```
 
-Place this file in `/tmp/schism-eval-fib/run.mjs`:
+Place this file in `/tmp/schism-eval-fib/main.js`:
 
 ```js
-import fs from 'fs';
-import path from 'path';
-import process from 'process';
+import { Engine } from "./rt.js";
 
-import { Engine } from './rt.mjs';
-
-async function callAndThenExit(f) {
-    // Pending promises don't keep Node alive; you need timeouts for
-    // that.  A bit hacky, but whatever.
-    const timer = setTimeout(() => {}, 999999);
-    try {
-        await f();
-    } catch (e) {
-        console.warn('Test failed: ' + e);
-        console.warn(e.stack);
-        process.exit(1);
-    }
-    process.exit(0);
-}
-
-async function run() {
+export async function run(env, n) {
     const engine = new Engine;
-    const file = path.dirname(process.argv[1]) + '/schism-eval.wasm';
-    const bytes = fs.readFileSync(file);
-    const wasm = await engine.loadWasmModule(bytes);
+    const bytes = env.readBinaryFile('schism-eval.wasm');
+    const mod = await engine.loadWasmModule(bytes);
     engine.setCurrentInputPortChars(`
-      (begin
-        (display
-         (let fib ((n 25))
-           (if (< n 2)
-               n
-               (+ (fib (- n 1)) (fib (- n 2))))))
-        (newline))`);
+      (let fib ((n ${n}))
+        (if (< n 2)
+            n
+            (+ (fib (- n 1)) (fib (- n 2)))))`);
 
-    wasm.exports['read-and-eval']();
+    return mod.call('read-and-eval');
 }
-
-callAndThenExit(run);
 ```
-
-Note that this `run.mjs` test runner uses Node APIs.  We should
-certainly factor out all of this to some helper library.
 
 ## How to run
 
-To run in Node/v8, use:
+I run this with V8 built from source:
 
 ```
-node --experimental-modules --experimental-wasm-anyref \
-    ./run.mjs
+$ export JS="/home/wingo/src/v8/out/x64.release/d8 --experimental-wasm-anyref --experimental-wasm-return-call"
+$ proposals/bench run small schism-eval-fib
+```
+
+To run in SpiderMonkey, I would do the same, but with a different JS:
+
+```
+$ export JS=/home/wingo/src/mozilla-inbound/+js-release/js/src/js
+$ proposals/bench run small schism-eval-fib
+```
+
+Except, SpiderMonkey doesn't yet implement the tail call proposal yet.
+It can run other parts of the test runner though, e.g.:
+
+```
+$ proposals/bench list small
+schism-eval-fib
 ```
 
 ## Expected output
 
-The benchmark suite should verify that the node invocation prints the
-following:
+The benchmark suite itself verifies that the benchmark computes the
+expected value, thus it just outputs a time:
 
 ```
-75025
-```
-
-## Expected latency
-
-On my system this test runs in about 4 or 5 seconds:
-
-```
-real	0m4.729s
-user	0m4.913s
-sys	0m0.077s
+~/src/benchmarks$ for i in small medium large; do proposals/bench run $i schism-eval-fib; done
+schism-eval-fib/small: 0.277 seconds
+schism-eval-fib/medium: 1.862 seconds
+schism-eval-fib/large: 18.639 seconds
 ```
 
 ## Is it a good benchmark?
 
-Here's a perf output for v8, running node with `--perf-prof
---perf-basic-prof`.
+Here's a perf output for v8, for the medium size, running v8 with
+`--perf-prof --perf-basic-prof`.
 
 ```
-Samples: 21K of event 'cycles:ppp', Event count (approx.): 13825294727
-Overhead  Command  Shared Object        Symbol
-   9.42%  node     node                 [.] Builtins_StringAdd_CheckNone
-   5.04%  node     perf-6553.map        [.] LazyCompile:*%list->string file:///tmp/schism-eval-fib/rt.mjs:123
-   4.16%  node     perf-6553.map        [.] LazyCompile:*cons file:///tmp/schism-eval-fib/rt.mjs:143
-   3.62%  node     node                 [.] Builtins_ToNumber
-   3.47%  node     node                 [.] Builtins_WasmToNumber
-   2.90%  node     perf-6553.map        [.] Function:%eval-150
-   2.55%  node     perf-6553.map        [.] LazyCompile:*pair? file:///tmp/schism-eval-fib/rt.mjs:144
-   2.40%  node     perf-6553.map        [.] LazyCompile:*%make-char file:///tmp/schism-eval-fib/rt.mjs:108
-   2.21%  node     perf-6553.map        [.] 0x0000231eb1ec6405
-   2.17%  node     perf-6553.map        [.] 0x0000231eb1ec6505
-   2.16%  node     perf-6553.map        [.] 0x0000231eb1ec62ec
-   1.81%  node     perf-6553.map        [.] 0x0000231eb1ec6485
-   1.76%  node     perf-6553.map        [.] 0x0000231eb1ec6605
-   1.75%  node     perf-6553.map        [.] LazyCompile:*eq? file:///tmp/schism-eval-fib/rt.mjs:100
-   1.51%  node     perf-6553.map        [.] 0x0000231eb1ec61cc
-   1.39%  node     perf-6553.map        [.] LazyCompile:*string? file:///tmp/schism-eval-fib/rt.mjs:119
-   1.18%  node     node                 [.] Builtins_StrictEqual
-   1.15%  node     perf-6553.map        [.] LazyCompile:*%make-number file:///tmp/schism-eval-fib/rt.mjs:107
-   1.12%  node     perf-6553.map        [.] Function:list-tail-70
-   1.03%  node     perf-6553.map        [.] Function:cdr-50
-   1.00%  node     perf-6553.map        [.] 0x0000231eb1ec62e5
-   0.99%  node     perf-6553.map        [.] LazyCompile:*%string->symbol file:///tmp/schism-eval-fib/rt.mjs:136
-   0.93%  node     perf-6553.map        [.] 0x0000231eb1ec61c5
-   0.90%  node     perf-6553.map        [.] Function:string->symbol-83
-   0.88%  node     perf-6553.map        [.] Function:car-49
-   0.87%  node     perf-6553.map        [.] LazyCompile:*%cdr file:///tmp/schism-eval-fib/rt.mjs:146
-   0.85%  node     perf-6553.map        [.] 0x0000231eb1e62aba
-   0.74%  node     perf-6553.map        [.] 0x0000231eb1ec65fe
-   0.74%  node     perf-6553.map        [.] LazyCompile:*%number-value file:///tmp/schism-eval-fib/rt.mjs:110
-   0.72%  node     node                 [.] Builtins_StringEqual
-   0.69%  node     perf-6553.map        [.] LazyCompile:*%get-false file:///tmp/schism-eval-fib/rt.mjs:150
-   0.68%  node     perf-6553.map        [.] 0x0000231eb1ec64b3
-   0.68%  node     perf-6553.map        [.] LazyCompile:*%car file:///tmp/schism-eval-fib/rt.mjs:145
-   0.64%  node     perf-6553.map        [.] 0x0000231eb1ec63fe
-   0.62%  node     perf-6553.map        [.] 0x0000231eb1ec64fe
-   0.58%  node     perf-6553.map        [.] LazyCompile:*%get-null file:///tmp/schism-eval-fib/rt.mjs:152
-   0.51%  node     perf-6553.map        [.] 0x0000231eb1ec647e
+Samples: 8K of event 'cycles:ppp', Event count (approx.): 5361550627
+Overhead  Command          Shared Object       Symbol
+   8.25%  d8               d8                  [.] Builtins_ToNumber
+   5.95%  d8               perf-39773.map      [.] LazyCompile:*pair? /home/wingo/src/benchmarks/proposals/schism-eval-fib/
+   5.80%  d8               d8                  [.] Builtins_WasmToNumber
+   4.36%  d8               perf-39773.map      [.] LazyCompile:*eq? /home/wingo/src/benchmarks/proposals/schism-eval-fib/rt
+   3.68%  d8               perf-39773.map      [.] 0x00001d10e9a233e8
+   2.87%  d8               perf-39773.map      [.] 0x00001d10e99f0748
+   2.69%  d8               d8                  [.] Builtins_StrictEqual
+   2.61%  d8               perf-39773.map      [.] Function:list-tail-71
+   2.56%  d8               perf-39773.map      [.] 0x00001d10e99f08e1
+   2.26%  d8               perf-39773.map      [.] Function:cdr-51
+   2.07%  d8               perf-39773.map      [.] 0x00001d10e9a233e1
+   1.75%  d8               perf-39773.map      [.] LazyCompile:*%number-value /home/wingo/src/benchmarks/proposals/schism-e
+   1.69%  d8               perf-39773.map      [.] Function:car-50
+   1.61%  d8               perf-39773.map      [.] LazyCompile:*%cdr /home/wingo/src/benchmarks/proposals/schism-eval-fib/r
+   1.60%  d8               perf-39773.map      [.] 0x00001d10e999963a
+   1.46%  d8               perf-39773.map      [.] Function:%eval-151
+   1.34%  d8               perf-39773.map      [.] LazyCompile:*%car /home/wingo/src/benchmarks/proposals/schism-eval-fib/r
+   1.04%  d8               perf-39773.map      [.] 0x00001d10e99f075b
+   0.97%  d8               perf-39773.map      [.] 0x00001d10e9a233fb
+   0.96%  d8               perf-39773.map      [.] 0x00001d10e99f07a1
+   0.91%  d8               perf-39773.map      [.] 0x00001d10e99f07b2
+   0.89%  d8               perf-39773.map      [.] 0x00001d10e9a23421
+   0.88%  d8               perf-39773.map      [.] 0x00001d10e99f07c3
+   0.87%  d8               perf-39773.map      [.] 0x00001d10e99f0795
+   0.84%  d8               perf-39773.map      [.] LazyCompile:*%make-number /home/wingo/src/benchmarks/proposals/schism-ev
+   0.84%  d8               perf-39773.map      [.] 0x00001d10e99f0741
+   0.81%  d8               perf-39773.map      [.] 0x00001d10e99f0765
+   0.80%  d8               perf-39773.map      [.] 0x00001d10e99f0721
+   0.80%  d8               perf-39773.map      [.] 0x00001d10e99f0733
+   0.79%  d8               perf-39773.map      [.] Function:zero?-106
+   0.78%  d8               perf-39773.map      [.] Function:length-70
+   0.78%  d8               perf-39773.map      [.] 0x00001d10e9a23443
+   0.76%  d8               perf-39773.map      [.] 0x00001d10e9a23454
+   0.75%  d8               perf-39773.map      [.] 0x00001d10e99f0775
+   0.75%  d8               perf-39773.map      [.] 0x00001d10e99f0919
+   0.74%  d8               perf-39773.map      [.] 0x00001d10e99f08c1
+   0.71%  d8               perf-39773.map      [.] 0x00001d10e99f077f
+   0.69%  d8               perf-39773.map      [.] Function:null?-107
+   0.67%  d8               perf-39773.map      [.] 0x00001d10e9a23413
+   0.65%  d8               perf-39773.map      [.] 0x00001d10e9a23465
+   0.62%  d8               perf-39773.map      [.] 0x00001d10e99f072a
+   0.61%  d8               perf-39773.map      [.] 0x00001d10e99f08ca
+   0.59%  V8 DefaultWorke  d8                  [.] v8::internal::compiler::ReferenceMapPopulator::PopulateReferenceMaps
+   0.58%  d8               perf-39773.map      [.] 0x00001d10e99f090a
+   0.58%  d8               perf-39773.map      [.] 0x00001d10e9a23501
+   0.57%  d8               perf-39773.map      [.] Function:%eval*-152
+   0.56%  d8               perf-39773.map      [.] 0x00001d10e9a23437
+   0.55%  d8               perf-39773.map      [.] 0x00001d10e99f08d3
+   0.52%  d8               perf-39773.map      [.] 0x00001d10e9a233d6
+   0.51%  d8               perf-39773.map      [.] 0x00001d10e9a23403
 ```
 
-I think probably before an eventual adoption into official benchmarks,
-we should fix the static string allocation issue, to avoid testing
-string creation so much.
+I think these results show that the benchmark is indeed testing 
+the performance of `anyref` and callouts to
+accessors/constructors/predicates on the anyref values.
