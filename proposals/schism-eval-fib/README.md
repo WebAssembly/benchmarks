@@ -69,12 +69,13 @@ Source: https://github.com/google/schism/blob/master/test/eval.ss
 mkdir /tmp/schism-eval-fib
 git clone https://github.com/google/schism
 cd schism
-# Tail call support pending merge: https://github.com/google/schism/pull/80
-git checkout 7a0993568af3d73f26d190a41b554bf559148d9b
 # FIXME: Build from self-hosted wasm instead of Guile.
 bootstrap-from-guile.sh /tmp/schism-eval-fib/schism-eval.wasm test/eval.ss
 cp rt/rt.mjs /tmp/schism-eval-fib/rt.js
 ```
+
+This particular build was created with `master` revision
+`b709b789b5164847caf94cdd823811cf6391bdb3`.
 
 Place this file in `/tmp/schism-eval-fib/main.js`:
 
