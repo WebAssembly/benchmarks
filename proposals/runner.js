@@ -67,7 +67,9 @@ const computeEnv = () => {
             return p.then(testRunner.notifyDone);
         };
     } else {
-        env.waitFor = function waitFor(p) { throw 'no waitFor() available'; };
+        // JSC will drain promises before exiting and doesn't require a
+        // specific waiter.
+        env.waitFor = function waitFor(p) { return p; };
     }
 
     if (typeof quit !== 'undefined') {
@@ -121,9 +123,11 @@ const benchmarksBySize = {
     },
     'medium': {
         'schism-eval-fib': new ModuleBenchmark('schism-eval-fib', 'run', [25], 75025),
+        'schism-alloc': new ModuleBenchmark('schism-alloc', 'run', [1e7], true),
     },
     'large': {
         'schism-eval-fib': new ModuleBenchmark('schism-eval-fib', 'run', [30], 832040),
+        'zen-garden-load': new ModuleBenchmark('zen-garden', 'run', [], 0x3412),
     }
 };
 
