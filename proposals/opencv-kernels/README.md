@@ -2,14 +2,14 @@
 
 ## Overview
 The HTML5 standard brings users the great capability of including and handling multimedia locally, together with an emerging need of computer vision programming functions available on the web. However, real-time user experience cannot be achieved when implementing those computation-intensive functions in JavaScript, even on the highly-optimized JavaScript engine. With the announcement of WebAssembly technology, source code in multiple programming languages, such as C, C++, Rust, etc. can be compiled into a sort of low-level and platform-independent bytecode which can run on the browsers while maintaining near-to-native execution speed. Thus, the widely-used OpenCV library can be ported to web platform with little extra effort, the ported library is officially called OpenCV.js.
- 
-The OpenCV-based applications relies on the kernel functions for the performance-critical work. This benchmark evaluates three vision kernels for image transformation, including: threshold, integral and cvtColor. The threshold function applies fixed-level thresholding to a single-channel array; the integral function calculates the integral of an image; the cvtColor converts an image from one color space to another. The reasons for their admission are: 
 
-1) they are representative kernels in OpenCV; 
-2) they are heavily used in the image-processing applications;  
-3) they are computation-intensive kernels which can reflect WebAssembly's performance and real user experience; 
+The OpenCV-based applications relies on the kernel functions for the performance-critical work. This benchmark evaluates three vision kernels for image transformation, including: threshold, integral and cvtColor. The threshold function applies fixed-level thresholding to a single-channel array; the integral function calculates the integral of an image; the cvtColor converts an image from one color space to another. The reasons for their admission are:
+
+1) they are representative kernels in OpenCV;
+2) they are heavily used in the image-processing applications;
+3) they are computation-intensive kernels which can reflect WebAssembly's performance and real user experience;
 4) they are potential beneficiaries of WebAssembly SIMD or multi-thread features.
- 
+
 This benchmark runs each of the functions for 1000 times and measures the **prepare time**, **elapsed time** and **average time**, the standard deviations (**stddev**) are also calculated for stability analysis. Among the metrics we evaluate, **prepare time** and **elapsed time** are the dominant ones, and others are only for reference. In the tail of all 1000 runs, sha256 checksum of output image is calculated and compared with the reference value. By setting the size of images as 640\*480, 1280\*720 and 1920\*1080, the benchmark runs in small, medium and large mode respectively.
 
 ## Possible benchmark evolution
@@ -26,7 +26,7 @@ I think this benchmark should be categorized as “kernel”.
 
 ### License for perf.js and opencv-kernel.html
 ```
-Copyright 2019 Intel Corporation
+Copyright 2020 Intel Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,51 +41,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### License for OpenCV
-```
-By downloading, copying, installing or using the software you agree to this license.
-If you do not agree to this license, do not download, install,
-copy or use the software.
-
-
-                          License Agreement
-               For Open Source Computer Vision Library
-                       (3-clause BSD License)
-
-Copyright (C) 2000-2019, Intel Corporation, all rights reserved.
-Copyright (C) 2009-2011, Willow Garage Inc., all rights reserved.
-Copyright (C) 2009-2016, NVIDIA Corporation, all rights reserved.
-Copyright (C) 2010-2013, Advanced Micro Devices, Inc., all rights reserved.
-Copyright (C) 2015-2016, OpenCV Foundation, all rights reserved.
-Copyright (C) 2015-2016, Itseez Inc., all rights reserved.
-Third party copyrights are property of their respective owners.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-  * Redistributions of source code must retain the above copyright notice,
-    this list of conditions and the following disclaimer.
-
-  * Redistributions in binary form must reproduce the above copyright notice,
-    this list of conditions and the following disclaimer in the documentation
-    and/or other materials provided with the distribution.
-
-  * Neither the names of the copyright holders nor the names of the contributors
-    may be used to endorse or promote products derived from this software
-    without specific prior written permission.
-
-This software is provided by the copyright holders and contributors "as is" and
-any express or implied warranties, including, but not limited to, the implied
-warranties of merchantability and fitness for a particular purpose are disclaimed.
-In no event shall copyright holders or contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or services;
-loss of use, data, or profits; or business interruption) however caused
-and on any theory of liability, whether in contract, strict liability,
-or tort (including negligence or otherwise) arising in any way out of
-the use of this software, even if advised of the possibility of such damage.
-```
-
 ### License for sha256.js
 ```
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
@@ -94,21 +49,30 @@ the use of this software, even if advised of the possibility of such damage.
 /* www.movable-type.co.uk/scripts/sha256.html                                                     */
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
 ```
+## Version
+OpenCV: 4.3.0
 
-## How to build OpenCV.js
-The build process is **optional** as a prebuilt opencv.js is included in this project. It's also efficient to build opencv.js on your own: after installing Emscripten SDK, and activating PATH and other environment variables in current terminal, running build.sh script generates opencv.js and copies it here:
+Emscripten SDK: 1.39.16 (LLVM backend)
+
+## How to build OpenCV.js (Optional)
+The source code of OpenCV located at: https://github.com/opencv/opencv.git
+
+After installing Emscripten SDK, and activating PATH and other environment variables in current terminal, running the following commands generates OpenCV.js:
 ```
-./build.sh
+cd opencv
+python ./platforms/js/build_js.py build_wasm --build_wasm
 ```
+
+A bash script, build.sh, is provided for building the workload with OpenCV 4.3.0. But before running this script, please ensure the Emscripten is successfully installed and can be located with the environment variables.
 
 ## How to run
 This workload could run in three modes with input images of different sizes: small (640\*480), medium (1280\*720) and large (1920\*1080). And it supports Node.js, V8 shell and browsers.
 
-Node.js: 
+Node.js:
 ```
 node perf.js [mode]
 ```
-V8 shell: 
+V8 shell:
 ```
 d8 perf.js [-- mode]
 ```
@@ -119,26 +83,26 @@ chrome http://localhost:8000/opencv-kernel.html[?mode]
 If *mode* is not specified, the workload runs in small mode by default.
 
 ## Expected output
-Moreover, this workload prints the startup time ("Prepare time"), total execution time each workload takes ("elapsed time") and average execution time ("average time") in milliseconds (ms), together with the standard deviation of execution time of 1000 rounds. The output matrices of the functions will not be displayed due to their huge sizes, instead, the benchmark checked the sha256 checksums of the results of last iterations. 
+Moreover, this workload prints the startup time ("Prepare time"), total execution time each workload takes ("elapsed time") and average execution time ("average time") in milliseconds (ms), together with the standard deviation of execution time of 1000 rounds. The output matrices of the functions will not be displayed due to their huge sizes, instead, the benchmark checked the sha256 checksums of the results of last iterations.
 
 An example of the output shows:
 ```
 opencv.js loaded
-Prepare time: 1163.084406
+Prepare time: 1379.532
 === cvtColor ===
-elapsed time: 449.648181
-average time: 0.44928623100000004
-stddev: 0.021455702109174562 (4.78%)
+elapsed time: 399.5210000000002
+average time: 0.3636110000000008
+stddev: 0.027607022276954076 (7.59%)
 === threshold ===
-elapsed time: 289.104296
-average time: 0.2886608429999998
-stddev: 0.015280695784497221 (5.29%)
+elapsed time: 228.27499999999986
+average time: 0.19137500000000068
+stddev: 0.017555750482386855 (9.17%)
 === integral ===
-elapsed time: 838.173489
-average time: 0.8370389330000002
-stddev: 0.04490799442545297 (5.37%)
+elapsed time: 1069.445
+average time: 0.6642880000000128
+stddev: 0.04055493873748415 (6.11%)
 ```
-And here lists the performance data of d8 (7.8.37) with only TurboFan, data on Node.js and browsers should be close to it.
+And here lists the performance data of d8 (8.5.58) with only TurboFan, data on Node.js and browsers should be close to it.
 <table>
     <tr>
         <td>mode</td>
@@ -150,68 +114,68 @@ And here lists the performance data of d8 (7.8.37) with only TurboFan, data on N
     </tr>
     <tr>
         <td rowspan="3">small</td>
-        <td rowspan="3">1518.469</td>
+        <td rowspan="3">1379.532</td>
         <td>cvtColor</td>
-        <td>463.576</td>
-        <td>0.463</td>
-        <td>0.028 (6.14%)</td>
+        <td>399.521</td>
+        <td>0.364</td>
+        <td>0.027 (7.59%)</td>
     </tr>
     <tr>
         <td>threshold</td>
-        <td>172.031</td>
-        <td>0.172</td>
-        <td>0.014 (7.95%)</td>
+        <td>228.275</td>
+        <td>0.191</td>
+        <td>0.018 (9.17%)</td>
     </tr>
     <tr>
         <td>integral</td>
-        <td>617.762</td>
-        <td>0.617</td>
-        <td>0.043 (7.05%)</td>
+        <td>1069.445</td>
+        <td>0.664</td>
+        <td>0.041 (6.11%)</td>
     </tr>
     <tr>
         <td rowspan="3">medium</td>
-        <td rowspan="3">1510.839</td>
+        <td rowspan="3">1397.564</td>
         <td>cvtColor</td>
-        <td>1390.442</td>
-        <td>1.390</td>
-        <td>0.047 (3.39%)</td>
+        <td>1149.412</td>
+        <td>1.080</td>
+        <td>0.033 (3.08%)</td>
     </tr>
     <tr>
         <td>threshold</td>
-        <td>513.340</td>
-        <td>0.513</td>
-        <td>0.020 (3.99%)</td>
+        <td>639.416</td>
+        <td>0.571</td>
+        <td>0.014 (2.40%)</td>
     </tr>
     <tr>
         <td>integral</td>
-        <td>1869.212</td>
-        <td>1.868</td>
-        <td>0.083 (4.43%)</td>
+        <td>2805.676</td>
+        <td>1.958</td>
+        <td>0.090 (4.59%)</td>
     </tr>
     <tr>
         <td rowspan="3">large</td>
-        <td rowspan="3">1525.248</td>
+        <td rowspan="3">1381.105</td>
         <td>cvtColor</td>
-        <td>3151.294</td>
-        <td>3.150</td>
-        <td>0.050 (1.58%)</td>
+        <td>2552.249</td>
+        <td>2.419</td>
+        <td>0.115 (4.75%)</td>
     </tr>
     <tr>
         <td>threshold</td>
-        <td>1154.974</td>
-        <td>1.154</td>
-        <td>0.018 (1.56%)</td>
+        <td>1380.083</td>
+        <td>1.249</td>
+        <td>0.039 (3.10%)</td>
     </tr>
     <tr>
         <td>integral</td>
-        <td>4212.654</td>
-        <td>4.210</td>
-        <td>0.158 (3.75%)</td>
+        <td>6183.895</td>
+        <td>4.357</td>
+        <td>0.172 (3.96%)</td>
     </tr>
 </table>
 
 ## Profile report
-We profiled the medium workload on d8 (only TurboFan) with Linux Perf tool: 
+We profiled the medium workload on d8 (8.5.58, only TurboFan) with Linux Perf tool:
 
 ```
 perf record -k mono d8 --perf-prof --no-wasm-tier-up --no-liftoff perf.js -- medium
@@ -222,77 +186,77 @@ perf report -i perf.data.jitted
 And here is a snapshot of the profile report:
 
 ```
-  17.51%  d8               jitted-13564-11715.so  [.] Function:wasm-function[3853]-3853                                                                                                                                                                                                   
-  13.09%  d8               jitted-13564-11015.so  [.] Function:wasm-function[2844]-2844                                                                                                                                                                                                   
-   4.84%  d8               jitted-13564-1712.so   [.] Function:wasm-function[3874]-3874                                                                                                                                                                                                   
-   3.48%  d8               jitted-13564-12192.so  [.] LazyCompile:*hash ./sha256.js:38                                                                                                                                                                                                    
-   2.04%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler18LiveRangeConnector18ResolveControlFlowEPNS0_4ZoneE                                                                                                                                                        
-   1.65%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19LinearScanAllocator25FindFreeRegistersForRangeEPNS1_9LiveRangeENS0_6VectorINS1_16LifetimePositionEEE                                                                                                      
-   1.63%  d8               d8                     [.] _ZN2v88internal9Scavenger25EvacuateShortcutCandidateINS0_18FullHeapObjectSlotEEENS0_18SlotCallbackResultENS0_3MapET_NS0_10ConsStringEi                                                                                              
-   1.50%  d8               jitted-13564-12190.so  [.] LazyCompile:*hash ./sha256.js:38                                                                                                                                                                                                    
-   1.06%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler9Scheduler11PrepareUsesEv                                                                                                                                                                                   
-   1.05%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler12GraphReducer9ReduceTopEv                                                                                                                                                                                  
-   0.98%  d8               jitted-13564-772.so    [.] Builtin:TypedArrayPrototypeJoin                                                                                                                                                                                                     
-   0.89%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler12GraphTrimmer9TrimGraphEv                                                                                                                                                                                  
-   0.85%  V8 DefaultWorke  d8                     [.] _ZN2v88internal9BitVector8Iterator7AdvanceEv                                                                                                                                                                                        
-   0.85%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler24ScheduleEarlyNodeVisitor9VisitNodeEPNS1_4NodeE                                                                                                                                                            
-   0.83%  d8               d8                     [.] _ZN2v88internal6String11WriteToFlatIhEEvS1_PT_ii                                                                                                                                                                                    
-   0.82%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19LinearScanAllocator34PickRegisterThatIsAvailableLongestEPNS1_9LiveRangeEiRKNS0_6VectorINS1_16LifetimePositionEEE                                                                                          
-   0.79%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler23ScheduleLateNodeVisitor9SplitNodeEPNS1_10BasicBlockEPNS1_4NodeE                                                                                                                                           
-   0.74%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler16LiveRangeBuilder19ProcessInstructionsEPKNS1_16InstructionBlockEPNS0_9BitVectorE                                                                                                                           
-   0.69%  V8 DefaultWorke  d8                     [.] _ZNSt3__16__treeIPN2v88internal8compiler9LiveRangeENS3_19LinearScanAllocator17LiveRangeOrderingENS2_13ZoneAllocatorIS5_EEE15__emplace_multiIJRKS5_EEENS_15__tree_iteratorIS5_PNS_11__tree_nodeIS5_PvEElEEDpOT_                      
-   0.69%  d8               d8                     [.] _ZN2v88internal18BodyDescriptorBase15IteratePointersINS0_40IterateAndScavengePromotedObjectsVisitorEEEvNS0_10HeapObjectEiiPT_                                                                                                       
-   0.68%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19LinearScanAllocator14ForwardStateToENS1_16LifetimePositionE                                                                                                                                               
-   0.63%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler13MoveOptimizer12MigrateMovesEPNS1_11InstructionES4_                                                                                                                                                        
-   0.55%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler23ScheduleLateNodeVisitor9VisitNodeEPNS1_4NodeE                                                                                                                                                             
-   0.55%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler15OperandAssigner16AssignSpillSlotsEv                                                                                                                                                                       
-   0.53%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19LinearScanAllocator23TryAllocatePreferredRegEPNS1_9LiveRangeERKNS0_6VectorINS1_16LifetimePositionEEE                                                                                                      
-   0.51%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19InstructionSelector10VisitBlockEPNS1_10BasicBlockE                                                                                                                                                        
-   0.49%  V8 DefaultWorke  d8                     [.] _ZNSt3__127__tree_balance_after_insertIPNS_16__tree_node_baseIPvEEEEvT_S5_                                                                                                                                                          
-   0.48%  d8               libc-2.27.so           [.] __memmove_avx_unaligned_erms                                                                                                                                                                                                        
-   0.46%  V8 DefaultWorke  d8                     [.] _ZN2v88internal4wasm15WasmFullDecoderILNS1_7Decoder12ValidateFlagE1ENS1_12_GLOBAL__N_126WasmGraphBuildingInterfaceEE18DecodeFunctionBodyEv                                                                                          
-   0.45%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler10BasicBlock18GetCommonDominatorEPS2_S3_                                                                                                                                                                    
-   0.44%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler15OperandAssigner16CommitAssignmentEv                                                                                                                                                                       
-   0.44%  d8               jitted-13564-52.so     [.] Builtin:StringIndexOf                                                                                                                                                                                                               
-   0.43%  d8               d8                     [.] _ZN2v88internal9Scavenger14ScavengeObjectINS0_18FullHeapObjectSlotEEENS0_18SlotCallbackResultET_NS0_10HeapObjectE                                                                                                                   
-   0.42%  d8               d8                     [.] _ZN2v88internal8WorklistINSt3__14pairINS0_10HeapObjectEiEELi256EE3PopEiPS5_                                                                                                                                                         
-   0.42%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler4Node3NewEPNS0_4ZoneEjPKNS1_8OperatorEiPKPS2_b                                                                                                                                                              
-   0.41%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler17TopLevelLiveRange14AddUseIntervalENS1_16LifetimePositionES3_PNS0_4ZoneEb                                                                                                                                  
-   0.40%  d8               jitted-13564-1541.so   [.] LazyCompile:*decodeBase64 ./opencv.js:24                                                                                                                                                                                            
-   0.39%  d8               jitted-13564-885.so    [.] Builtin:StringPrototypeCharCodeAt                                                                                                                                                                                                   
-   0.38%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler18LiveRangeSeparator8SplinterEv                                                                                                                                                                             
-   0.38%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler24ScheduleEarlyNodeVisitor30PropagateMinimumPositionToNodeEPNS1_10BasicBlockEPNS1_4NodeE                                                                                                                    
-   0.38%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler21ValueNumberingReducer6ReduceEPNS1_4NodeE                                                                                                                                                                  
-   0.37%  d8               d8                     [.] _ZN2v88internal4Heap11OnMoveEventENS0_10HeapObjectES2_i                                                                                                                                                                             
-   0.37%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler9Scheduler28DecrementUnscheduledUseCountEPNS1_4NodeEiS4_                                                                                                                                                    
-   0.36%  V8 DefaultWorke  d8                     [.] _ZNK2v88internal8compiler19InstructionSequence17GetSourcePositionEPKNS1_11InstructionEPNS0_14SourcePositionE                                                                                                                        
-   0.35%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19LinearScanAllocator18AllocateBlockedRegEPNS1_9LiveRangeENS1_22RegisterAllocationData9SpillModeE                                                                                                           
-   0.35%  V8 DefaultWorke  d8                     [.] _ZN2v86Object36GetRealNamedPropertyInPrototypeChainENS_5LocalINS_7ContextEEENS1_INS_4NameEEE                                                                                                                                        
-   0.33%  V8 DefaultWorke  d8                     [.] _ZN2v88internal11TickCounter6DoTickEv                                                                                                                                                                                               
-   0.33%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler23ScheduleLateNodeVisitor12ProcessQueueEPNS1_4NodeE                                                                                                                                                         
-   0.31%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler9LiveRange8DetachAtENS1_16LifetimePositionEPS2_PNS0_4ZoneENS2_20HintConnectionOptionE                                                                                                                       
-   0.31%  V8 DefaultWorke  libc-2.27.so           [.] __memmove_avx_unaligned_erms                                                                                                                                                                                                        
-   0.30%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19InstructionSelector18SelectInstructionsEv                                                                                                                                                                 
-   0.30%  d8               d8                     [.] _ZN2v88internal9Scavenger7ProcessEPNS0_14OneshotBarrierE                                                                                                                                                                            
-   0.29%  d8               d8                     [.] _ZN2v88internal3Uri6EncodeEPNS0_7IsolateENS0_6HandleINS0_6StringEEEb                                                                                                                                                                
-   0.27%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler18LiveRangeConnector13ConnectRangesEPNS0_4ZoneE                                                                                                                                                             
-   0.27%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler23ScheduleLateNodeVisitor12ScheduleNodeEPNS1_10BasicBlockEPNS1_4NodeE                                                                                                                                       
-   0.26%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler23ScheduleLateNodeVisitor14GetBlockForUseENS1_4EdgeE                                                                                                                                                        
-   0.26%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler11GapResolver7ResolveEPNS1_12ParallelMoveE                                                                                                                                                                  
-   0.26%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler22RegisterAllocationData23GetOrCreateLiveRangeForEi                                                                                                                                                         
-   0.26%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler16LiveRangeBuilder14ComputeLiveOutEPKNS1_16InstructionBlockEPNS1_22RegisterAllocationDataE                                                                                                                  
-   0.25%  V8 DefaultWorke  d8                     [.] _ZNSt3__113__tree_removeIPNS_16__tree_node_baseIPvEEEEvT_S5_                                                                                                                                                                        
-   0.25%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler18PrepareUsesVisitor3PreEPNS1_4NodeE                                                                                                                                                                        
-   0.25%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler13MoveOptimizer13FinalizeMovesEPNS1_11InstructionE                                                                                                                                                          
-   0.25%  V8 DefaultWorke  d8                     [.] _ZN2v88internal24ConcurrentMarkingVisitor23ProcessStrongHeapObjectINS0_18FullHeapObjectSlotEEEvNS0_10HeapObjectET_S4_                                                                                                               
-   0.24%  d8               d8                     [.] _ZN2v88internal7Scanner10ScanStringEv                                                                                                                                                                                               
-   0.24%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler24ScheduleEarlyNodeVisitor3RunEPNS0_10ZoneVectorIPNS1_4NodeEEE                                                                                                                                              
-   0.23%  V8 DefaultWorke  d8                     [.] _ZN2v88internal24ConcurrentMarkingVisitor23VisitPointersInSnapshotENS0_10HeapObjectERKNS0_12SlotSnapshotE                                                                                                                           
-   0.23%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler19LinearScanAllocator17AllocateRegistersEv                                                                                                                                                                  
-   0.23%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler17ConstraintBuilder21MeetConstraintsBeforeEi                                                                                                                                                                
-   0.23%  V8 DefaultWorke  d8                     [.] _ZN2v88internal8compiler16LiveRangeBuilder17ProcessLoopHeaderEPKNS1_16InstructionBlockEPNS0_9BitVectorE                                                                                                                             
+Samples: 56K of event 'cycles', Event count (approx.): 51288348348
+Overhead  Command          Shared Object          Symbol
+  15.90%  d8               jitted-30366-1605.so   [.] Function:wasm-function[3916]-3916-turbofan
+   8.70%  d8               jitted-30366-8402.so   [.] Function:wasm-function[2905]-2905-turbofan
+   4.54%  d8               jitted-30366-1739.so   [.] Function:wasm-function[3928]-3928-turbofan
+   2.64%  d8               jitted-30366-12697.so  [.] LazyCompile:*hash ./sha256.js:38
+   2.25%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::ForwardStateTo
+   2.13%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::FindFreeRegistersForRange
+   1.88%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LiveRangeConnector::ResolveControlFlow
+   1.33%  d8               d8                     [.] v8::internal::Scavenger::EvacuateShortcutCandidate<v8::internal::CompressedHeapObjectSlot>
+   1.25%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::TryAllocatePreferredReg
+   1.20%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::Scheduler::PrepareUses
+   1.17%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::GraphReducer::ReduceTop
+   1.08%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::GraphTrimmer::TrimGraph
+   1.08%  d8               jitted-30366-628.so    [.] Builtin:TypedArrayPrototypeJoin
+   0.97%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::PickRegisterThatIsAvailableLongest
+   0.94%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleEarlyNodeVisitor::VisitNode
+   0.92%  V8 DefaultWorke  d8                     [.] std::__1::__tree<v8::internal::compiler::LiveRange*, v8::internal::compiler::LinearScanAllocator::UnhandledLiveRangeOrdering, v8::internal::ZoneAllocator<v8::internal::compiler::LiveRange*> >::__emplace_multi<v8::internal::compi
+   0.89%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::TryAllocateFreeReg
+   0.85%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LiveRangeBuilder::ProcessInstructions
+   0.84%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleLateNodeVisitor::SplitNode
+   0.73%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleLateNodeVisitor::VisitNode
+   0.70%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::UpdateDeferredFixedRanges(v8::internal::compiler::RegisterAllocationData::SpillMode, v8::internal::compiler::InstructionBlock*)::$_3::operator()(v8::internal::compiler::LiveRange*) co
+   0.69%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::OperandAssigner::CommitAssignment
+   0.65%  d8               d8                     [.] v8::internal::BodyDescriptorBase::IteratePointers<v8::internal::IterateAndScavengePromotedObjectsVisitor>
+   0.63%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::AllocateRegisters
+   0.61%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::AssignRegisterOnReload
+   0.59%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::BasicBlock::GetCommonDominator
+   0.56%  V8 DefaultWorke  d8                     [.] std::__1::__tree_balance_after_insert<std::__1::__tree_node_base<void*>*>
+   0.54%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::Node::New
+   0.53%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::InstructionSelector::VisitBlock
+   0.53%  d8               jitted-30366-672.so    [.] Builtin:StringPrototypeCharCodeAt
+   0.52%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::Scheduler::DecrementUnscheduledUseCount
+   0.51%  d8               d8                     [.] v8::internal::String::WriteToFlat<unsigned char>
+   0.50%  V8 DefaultWorke  d8                     [.] v8::internal::wasm::WasmFullDecoder<(v8::internal::wasm::Decoder::ValidateFlag)1, v8::internal::wasm::(anonymous namespace)::WasmGraphBuildingInterface>::DecodeFunctionBody
+   0.48%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::OperandAssigner::AssignSpillSlots
+   0.45%  d8               jitted-30366-1599.so   [.] LazyCompile:*decodeBase64 ./opencv.js:31
+   0.45%  V8 DefaultWorke  d8                     [.] v8::internal::TickCounter::DoTick
+   0.44%  d8               d8                     [.] v8::internal::MarkCompactCollector::ProcessMarkingWorklist<(v8::internal::MarkCompactCollector::MarkingWorklistProcessingMode)0>
+   0.44%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleEarlyNodeVisitor::PropagateMinimumPositionToNode
+   0.42%  V8 DefaultWorke  d8                     [.] std::__1::__tree_remove<std::__1::__tree_node_base<void*>*>
+   0.40%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::AllocateBlockedReg
+   0.40%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::MoveOptimizer::MigrateMoves
+   0.39%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LiveRangeConnector::ConnectRanges
+   0.39%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::TopLevelLiveRange::AddUseInterval
+   0.39%  d8               d8                     [.] v8::internal::Uri::Encode
+   0.38%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ValueNumberingReducer::Reduce
+   0.38%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::InstructionSelector::SelectInstructions
+   0.38%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::SetLiveRangeAssignedRegister
+   0.36%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleLateNodeVisitor::ProcessQueue
+   0.36%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::RegisterAllocationData::GetOrCreateLiveRangeFor
+   0.35%  d8               jitted-30366-59.so     [.] Builtin:StringIndexOf
+   0.33%  d8               d8                     [.] v8::internal::Scavenger::Process
+   0.32%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LinearScanAllocator::AllocateRegisters()::$_4::operator()
+   0.31%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::InstructionSequence::GetInstructionBlock
+   0.31%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LiveRangeBuilder::AddInitialIntervals
+   0.31%  d8               d8                     [.] v8::internal::MarkingVisitorBase<v8::internal::MainMarkingVisitor<v8::internal::MajorMarkingState>, v8::internal::MajorMarkingState>::ProcessStrongHeapObject<v8::internal::CompressedHeapObjectSlot>
+   0.31%  d8               jitted-30366-12698.so  [.] LazyCompile:*hash ./sha256.js:38
+   0.31%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LiveRangeBuilder::ComputeLiveOut
+   0.30%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::InstructionSequence::GetSourcePosition
+   0.30%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::Scheduler::UpdatePlacement
+   0.30%  d8               d8                     [.] v8::internal::Worklist<std::__1::pair<v8::internal::HeapObject, int>, 256>::Pop
+   0.29%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ConstraintBuilder::MeetConstraintsBefore
+   0.29%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::Schedule::AddNode
+   0.29%  V8 DefaultWorke  libc-2.27.so           [.] _int_malloc
+   0.28%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleLateNodeVisitor::GetBlockForUse
+   0.28%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::ScheduleLateNodeVisitor::ScheduleNode
+   0.28%  d8               d8                     [.] v8::internal::Scavenger::ScavengeObject<v8::internal::CompressedHeapObjectSlot>
+   0.27%  V8 DefaultWorke  d8                     [.] v8::internal::compiler::LiveRangeBuilder::Use
 ```
-As is observed, the top 3 functions are WebAssembly functions, which account for around 34.72% of the total CPU time.
+It can be observed that the top 3 functions are WebAssembly functions, which account for around 29.14% of the total CPU time.
 
 ## Known issues
 

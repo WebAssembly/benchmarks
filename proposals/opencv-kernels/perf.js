@@ -136,7 +136,7 @@ if (typeof window !== "undefined") {
   opencv_script.setAttribute("type", "text/javascript");
   opencv_script.src = './opencv.js';
   opencv_script.onload = function() {
-    cv.onRuntimeInitialized = cv_onRuntimeInitialized; 
+    cv.then(cv_resolved); 
   }
   output_node.parentElement.insertBefore(opencv_script, output_node);
 
@@ -151,7 +151,7 @@ else if (typeof process !== "undefined") {
 
   cv = require('./opencv.js');
   Sha256 = require("./sha256.js");
-  cv.onRuntimeInitialized = cv_onRuntimeInitialized; 
+  cv.then(cv_resolved); 
 
   option_str = process.argv.length > 2 && options_keys.includes(process.argv[2]) ? process.argv[2] : "small";
 }
@@ -162,33 +162,33 @@ else {
 
   load('./opencv.js');
   load("./sha256.js");
-  cv.onRuntimeInitialized = cv_onRuntimeInitialized; 
+  cv.then(cv_resolved); 
 
   option_str = arguments.length > 0 && options_keys.includes(arguments[0]) ? arguments[0] : "small";
 }
 
-function cv_onRuntimeInitialized() {
-  let preend = getTimestamp();
+function cv_resolved(cv_module) {
+  var preend = getTimestamp();
   console.log('opencv.js loaded');
   console.log('Prepare time:', getMs(prestart, preend));
 
   let option = options[option_str];
 
-  perfCvtColor(option["CvtColor"]);
-  perfThreshold(option["Threshold"]);
-  perfIntegral(option["Integral"]);
+  perfCvtColor(cv_module, option["CvtColor"]);
+  perfThreshold(cv_module, option["Threshold"]);
+  perfIntegral(cv_module, option["Integral"]);
 };
 
-function perfCvtColor(option) {
-  let source = new cv.Mat(option.height, option.width, cv.CV_8UC4, new cv.Scalar(0, 0, 0, 0));
-  let dest = new cv.Mat();
+function perfCvtColor(cv_module, option) {
+  let source = new cv_module.Mat(option.height, option.width, cv_module.CV_8UC4, new cv_module.Scalar(0, 0, 0, 0));
+  let dest = new cv_module.Mat();
 
   console.log(`=== cvtColor ===`);
   let perf = [];
   const start = getTimestamp()
   for (let i = 0; i < samples; ++i) {
     let hrstart = getTimestamp();
-    cv.cvtColor(source, dest, cv.COLOR_BGR2GRAY, 0);
+    cv_module.cvtColor(source, dest, cv_module.COLOR_BGR2GRAY, 0);
     let hrend = getTimestamp();
     perf.push(getMs(hrstart, hrend));
   }
@@ -198,30 +198,30 @@ function perfCvtColor(option) {
 
   let dest_hash = Sha256.hash(dest.data.join('')); 
   if (dest_hash !== option.expected_dest_hash) {
-    throw "Wrong result from cv.cvtColor()!";
+    throw "Wrong result from cv_module.cvtColor()!";
   }
 
   source.delete();
   dest.delete();
 }
 
-function perfThreshold(option) {
+function perfThreshold(cv_module, option) {
   const THRESHOLD = 127.0;
   const THRESHOLD_MAX = 210.0;
-  let source = new cv.Mat(option.height, option.width, cv.CV_8UC1, new cv.Scalar(0));
+  let source = new cv_module.Mat(option.height, option.width, cv_module.CV_8UC1, new cv_module.Scalar(0));
   let sourceView = source.data;
   sourceView[0] = 0; // < threshold
   sourceView[1] = 100; // < threshold
   sourceView[2] = 200; // > threshold
 
-  let dest = new cv.Mat();
+  let dest = new cv_module.Mat();
 
   console.log(`=== threshold ===`);
   let perf = [];
   const start = getTimestamp();
   for (let i = 0; i < samples; ++i) {
     let hrstart = getTimestamp();
-    cv.threshold(source, dest, THRESHOLD, THRESHOLD_MAX, cv.THRESH_BINARY);
+    cv_module.threshold(source, dest, THRESHOLD, THRESHOLD_MAX, cv_module.THRESH_BINARY);
     let hrend = getTimestamp();
     perf.push(getMs(hrstart, hrend));
   }
@@ -231,24 +231,24 @@ function perfThreshold(option) {
 
   let dest_hash = Sha256.hash(dest.data.join('')); 
   if (dest_hash !== option.expected_dest_hash) {
-    throw "Wrong result from cv.threshold()!";
+    throw "Wrong result from cv_module.threshold()!";
   }
 
   source.delete();
   dest.delete();
 }
 
-function perfIntegral(option) {
-  let mat = cv.Mat.eye({height: option.height, width: option.width}, cv.CV_8UC1);
-  let sum = new cv.Mat();
-  let sqSum = new cv.Mat();
+function perfIntegral(cv_module, option) {
+  let mat = cv_module.Mat.eye({height: option.height, width: option.width}, cv_module.CV_8UC1);
+  let sum = new cv_module.Mat();
+  let sqSum = new cv_module.Mat();
 
   console.log(`=== integral ===`);
   let perf = [];
   const start = getTimestamp();
   for (let i = 0; i < samples; ++i) {
     let hrstart = getTimestamp();
-    cv.integral2(mat, sum, sqSum, -1, -1);
+    cv_module.integral2(mat, sum, sqSum, -1, -1);
     let hrend = getTimestamp();
     perf.push(getMs(hrstart, hrend));
   }
@@ -259,7 +259,7 @@ function perfIntegral(option) {
   let sum_hash = Sha256.hash(sum.data.join('')); 
   let sqSum_hash = Sha256.hash(sqSum.data.join('')); 
   if (sum_hash !== option.expected_sum_hash || sqSum_hash !== option.expected_sqSum_hash) {
-    throw "Wrong result from cv.integral2()!";
+    throw "Wrong result from cv_module.integral2()!";
   }
 
   mat.delete();

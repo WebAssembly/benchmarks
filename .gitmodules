@@ -1,3 +1,0 @@
-[submodule "proposals/opencv-kernels/opencv"]
-	path = proposals/opencv-kernels/opencv
-	url = https://github.com/opencv/opencv.git
